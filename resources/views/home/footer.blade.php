@@ -4,7 +4,7 @@
 <!-- Smartsupp Live Chat script -->
 <script type="text/javascript">
     var _smartsupp = _smartsupp || {};
-_smartsupp.key = '6ee2569bf89a8a2ea6907b841794fb259f68883d';
+_smartsupp.key = 'ddd5fe4882cea3580b0693ccf29f53143e26fb3c';
 window.smartsupp||(function(d) {
   var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
   s=d.getElementsByTagName('script')[0];c=d.createElement('script');
@@ -13,6 +13,7 @@ window.smartsupp||(function(d) {
 })(document);
 </script>
 <noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+
 <footer class="footer">
     <div class="container">
 
