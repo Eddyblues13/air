@@ -830,7 +830,7 @@
                     </div>
                     <div class="col-md-6 text-md-end">
                         <p>Need help? Contact our support team 24/7</p>
-                        <p><i class="fas fa-phone me-2"></i> +1 (800) 123-4567</p>
+                        <p><i class="fas fa-phone me-2"></i> +1(318) 491-5463</p>
                         <p><i class="fas fa-envelope me-2"></i> support@expressairdelivery.com</p>
                     </div>
                 </div>
