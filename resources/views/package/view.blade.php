@@ -846,110 +846,108 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            const map = L.map('map').setView([39.8283, -98.5795], 4); // Center of US
-            
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            
-            // Add markers for origin and destination
-            const origin = L.marker([37.7749, -122.4194]).addTo(map) // San Francisco
-                .bindPopup('Origin: {{ $package->shipping_from }}')
-                .openPopup();
-                
-            const destination = L.marker([40.7128, -74.0060]).addTo(map) // New York
-                .bindPopup('Destination: {{ $package->shipping_to }}');
-            
-            // Add current location marker if available
-            @if($currentLocation = $package->trackingLocations->where('is_current', true)->first())
-                // For demo purposes, we'll place the current location at a midpoint
-                const current = L.marker([39.8283, -98.5795]).addTo(map)
-                    .bindPopup('Current Location: {{ $currentLocation->location_name }}')
-                    .openPopup();
-                    
-                // Add a moving vehicle icon for demo
-                const movingIcon = L.divIcon({
-                    html: '<i class="fas fa-truck fa-2x" style="color: #e74c3c;"></i>',
-                    className: 'moving-vehicle',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
-                });
-                
-                const vehicleMarker = L.marker([39.8283, -98.5795], {icon: movingIcon}).addTo(map);
-            @endif
-            
-            // Add a route line
-            const route = L.polyline([
-                [37.7749, -122.4194],
-                [39.8283, -98.5795],
-                [40.7128, -74.0060]
-            ], {color: '#3498db', weight: 5}).addTo(map);
-            
-            // Fit map to show all markers
-            map.fitBounds([
-                [37.7749, -122.4194],
-                [40.7128, -74.0060]
-            ]);
+    // Initialize world view
+    const map = L.map('map').setView([20, 0], 2);
 
-            // Simulate live updates
-            setInterval(function() {
-                // Animate the progress bar
-                const progressFill = document.querySelector('.tracking-progress-fill');
-                const currentWidth = parseFloat(progressFill.style.width);
-                const newWidth = Math.min(currentWidth + 0.1, 100);
-                progressFill.style.width = newWidth + '%';
-                
-                // Move the vehicle marker along the route for demo
-                if (typeof vehicleMarker !== 'undefined') {
-                    const lat = 37.7749 + (40.7128 - 37.7749) * (newWidth / 100);
-                    const lng = -122.4194 + (-74.0060 - (-122.4194)) * (newWidth / 100);
-                    vehicleMarker.setLatLng([lat, lng]);
-                }
-            }, 3000);
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-            // Print functionality
-            document.getElementById('printBtn').addEventListener('click', function() {
-                window.print();
-            });
+    // Origin and destination markers
+    const originCoords = [37.7749, -122.4194];   // Replace with {{ $package->origin_lat }}, {{ $package->origin_lng }}
+    const destCoords   = [40.7128, -74.0060];    // Replace with {{ $package->destination_lat }}, {{ $package->destination_lng }}
 
-            // Refresh functionality
-            document.getElementById('refreshBtn').addEventListener('click', function() {
-                const btn = this;
-                const icon = btn.querySelector('i');
-                
-                btn.disabled = true;
-                icon.classList.add('fa-spin');
-                
-                // Simulate API call
-                setTimeout(function() {
-                    const now = new Date();
-                    document.getElementById('lastUpdated').textContent = 
-                        now.toLocaleString('en-US', { 
-                            month: 'short', 
-                            day: '2-digit', 
-                            year: 'numeric',
-                            hour: '2-digit', 
-                            minute: '2-digit'
-                        });
-                    
-                    btn.disabled = false;
-                    icon.classList.remove('fa-spin');
-                    
-                    // Show update notification
-                    const toast = document.createElement('div');
-                    toast.className = 'alert alert-success notification-toast';
-                    toast.innerHTML = '<i class="fas fa-check-circle me-2"></i> Status updated successfully!';
-                    document.body.appendChild(toast);
-                    
-                    setTimeout(function() {
-                        toast.remove();
-                    }, 3000);
-                }, 1500);
-            });
+    const origin = L.marker(originCoords).addTo(map)
+        .bindPopup('Origin: {{ $package->shipping_from }}').openPopup();
+
+    const destination = L.marker(destCoords).addTo(map)
+        .bindPopup('Destination: {{ $package->shipping_to }}');
+
+    // Pulsing current location (if available)
+    @if($currentLocation = $package->trackingLocations->where('is_current', true)->first())
+        const currentCoords = [39.8283, -98.5795]; // Replace with {{ $currentLocation->lat }}, {{ $currentLocation->lng }}
+
+        const pulsingIcon = L.divIcon({
+            html: '<div class="pulse-marker"></div>',
+            className: '',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
         });
+
+        L.marker(currentCoords, {icon: pulsingIcon})
+            .addTo(map)
+            .bindPopup('Current Location: {{ $currentLocation->location_name }}')
+            .openPopup();
+    @endif
+
+    // Truck icon
+    const movingIcon = L.divIcon({
+        html: '<i class="fas fa-truck fa-2x" style="color: #e74c3c;"></i>',
+        className: '',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+    });
+    let vehicleMarker = L.marker(originCoords, {icon: movingIcon}).addTo(map);
+
+    // Animated route line
+    let routeLine = L.polyline([originCoords], {color: '#3498db', weight: 5}).addTo(map);
+
+    // Smooth animation
+    let progress = 0; // 0% → 100%
+    function animateTruck() {
+        if (progress >= 100) return;
+
+        progress += 0.5; // speed (increase for faster movement)
+        const lat = originCoords[0] + (destCoords[0] - originCoords[0]) * (progress / 100);
+        const lng = originCoords[1] + (destCoords[1] - originCoords[1]) * (progress / 100);
+
+        vehicleMarker.setLatLng([lat, lng]);
+
+        // Extend route line gradually
+        routeLine.addLatLng([lat, lng]);
+
+        requestAnimationFrame(animateTruck);
+    }
+
+    animateTruck(); // start animation
+});
     </script>
+
+    <style>
+        /* Pulsing marker effect */
+        .pulse-marker {
+            width: 20px;
+            height: 20px;
+            background: rgba(52, 152, 219, 0.4);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .pulse-marker::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(52, 152, 219, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+
+
 </body>
 
 </html>
